@@ -10,7 +10,14 @@ const SLA = (() => {
 
   /* ---------- أدوات نصية (منقولة من نظام الاتفاقية الحالي) ---------- */
 
-  const AR = n => String(n).replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
+  /* تنسيق الأرقام — أرقام لاتينية (0-9) بفاصل آلاف وكسر عشري واحد.
+     كل أرقام النظام تمر من هنا، فلا تظهر أرقام هندية في أي شاشة. */
+  const AR = n => {
+    const v = Number(n);
+    return Number.isFinite(v)
+      ? v.toLocaleString("en-US", { maximumFractionDigits: 1 })
+      : String(n == null ? "" : n);
+  };
 
   const esc = s => String(s == null ? "" : s)
     .replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -48,7 +55,7 @@ const SLA = (() => {
 
   const fmtShort = d => {
     d = toDate(d); if (!d || isNaN(d)) return "—";
-    return `${AR(String(d.getDate()).padStart(2, "0"))}/${AR(String(d.getMonth() + 1).padStart(2, "0"))}/${AR(d.getFullYear())}`;
+    return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
   };
 
   const fmtDateTime = d => {
@@ -59,7 +66,7 @@ const SLA = (() => {
     return `${fmtShort(d)} — ${AR(h12)}:${AR(m)} ${per}`;
   };
 
-  /* «قبل ٣ أيام» / «خلال يومين» */
+  /* «قبل 3 أيام» / «خلال يومين» */
   const relDays = n => {
     const a = Math.abs(n);
     const word = a === 0 ? "اليوم" : a === 1 ? "يوم واحد" : a === 2 ? "يومان"
@@ -94,7 +101,7 @@ const SLA = (() => {
 
   /* أول لحظة عمل صالحة لبدء احتساب المدة:
      — إن كان اليوم عطلة  → بداية أول يوم عمل تالٍ
-     — إن كان بعد ساعة القطع (٢ ظهراً) → بداية يوم العمل التالي
+     — إن كان بعد ساعة القطع (2 ظهراً) → بداية يوم العمل التالي
      — إن كان قبل بداية الدوام → بداية دوام اليوم نفسه */
   const effectiveStart = from => {
     let d = new Date(toDate(from).getTime());
@@ -205,13 +212,13 @@ const SLA = (() => {
 
   /* المؤشر الملوَّن — المصدر الوحيد لألوان الالتزام في النظام كله */
   const slaColor = pct => {
-    if (pct == null || isNaN(pct)) return { key: "none", color: "var(--muted)", label: "لا توجد بيانات كافية" };
+    if (pct == null || isNaN(pct)) return { key: "none", color: "var(--ink-3)", label: "لا توجد بيانات كافية" };
     if (pct >= CONFIG.THRESHOLD_OK) return { key: "ok", color: "var(--ok)", label: "ملتزم" };
     if (pct >= CONFIG.THRESHOLD_WARN) return { key: "warn", color: "var(--warn)", label: "تحت المتابعة" };
     return { key: "danger", color: "var(--danger)", label: "متعثر" };
   };
 
-  const pctText = p => p == null ? "—" : AR(String(p).replace(".", "٫")) + "٪";
+  const pctText = p => p == null ? "—" : AR(p) + "%";
 
   /* ---------- إحصاءات مجموعة مهام ---------- */
   const summarize = (tasks, now) => {

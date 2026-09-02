@@ -67,25 +67,42 @@ const UI = (() => {
     });
   }
 
-  /* ---------- حلقة النسبة المئوية ---------- */
+  /* أيقونة لكل حالة — اللون وحده لا يكفي (فصل عمى الألوان في الوضع
+     الداكن ضمن نطاق التحذير)، فيرافقه دائماً شكل وتسمية ورقم. */
+  const GLYPH = { ok: "✓", warn: "!", danger: "✕", none: "–" };
+
+  /* شارة الحالة: أيقونة + تسمية + لون */
+  function stateBadge(pct) {
+    const c = SLA.slaColor(pct);
+    return `<span class="state ${c.key}">
+      <span class="gl" aria-hidden="true">${GLYPH[c.key]}</span>${esc(c.label)}</span>`;
+  }
+
+  /* ---------- حلقة النسبة (Meter) ---------- */
+  /* المسار غير الممتلئ = درجة أفتح من لون التعبئة نفسه، فتُقرأ الحالة
+     على امتداد الحلقة كاملة لا في الجزء الممتلئ فقط. */
   function ring(pct, label, sub, size) {
-    const s = size || 96, r = (s / 2) - 8, c = 2 * Math.PI * r;
+    const s = size || 104, w = s >= 96 ? 8 : 7;
+    const r = (s / 2) - (w / 2) - 1, c = 2 * Math.PI * r;
     const v = pct == null ? 0 : Math.max(0, Math.min(100, pct));
     const col = SLA.slaColor(pct);
     return `
       <div class="ring">
         <div class="ring-wrap" style="width:${s}px;height:${s}px">
-          <svg width="${s}" height="${s}">
-            <circle cx="${s / 2}" cy="${s / 2}" r="${r}" fill="none" stroke="var(--line)" stroke-width="8"/>
-            <circle cx="${s / 2}" cy="${s / 2}" r="${r}" fill="none" stroke="${col.color}" stroke-width="8"
-              stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - v / 100)}"/>
+          <svg width="${s}" height="${s}" role="img"
+               aria-label="${esc(label || "نسبة")}: ${pct == null ? "لا توجد بيانات" : SLA.pctText(pct)} — ${esc(col.label)}">
+            <circle cx="${s / 2}" cy="${s / 2}" r="${r}" fill="none"
+              stroke="${col.color}" stroke-opacity=".15" stroke-width="${w}"/>
+            <circle cx="${s / 2}" cy="${s / 2}" r="${r}" fill="none" stroke="${col.color}"
+              stroke-width="${w}" stroke-linecap="round"
+              stroke-dasharray="${c}" stroke-dashoffset="${c * (1 - v / 100)}"/>
           </svg>
-          <div class="ring-val" style="color:${col.color}">
+          <div class="ring-val" style="color:${col.color};font-size:${s >= 96 ? "1.15rem" : ".92rem"}">
             ${pct == null ? "—" : SLA.pctText(pct)}
             ${sub ? `<small>${esc(sub)}</small>` : ""}
           </div>
         </div>
-        ${label ? `<div class="ring-label"><b>${esc(label)}</b>${col.label}</div>` : ""}
+        ${label ? `<div class="ring-label"><b>${esc(label)}</b>${stateBadge(pct)}</div>` : ""}
       </div>`;
   }
 
@@ -93,9 +110,11 @@ const UI = (() => {
   function barline(pct) {
     const col = SLA.slaColor(pct);
     const v = pct == null ? 0 : Math.max(0, Math.min(100, pct));
-    return `<div class="barline">
+    return `<div class="barline" title="${esc(col.label)}">
       <div class="bar"><i style="width:${v}%;background:${col.color}"></i></div>
-      <span class="pv" style="color:${col.color}">${pct == null ? "—" : SLA.pctText(pct)}</span>
+      <span class="pv" style="color:${col.color}">
+        <span aria-hidden="true">${GLYPH[col.key]}</span> ${pct == null ? "—" : SLA.pctText(pct)}
+      </span>
     </div>`;
   }
 
@@ -161,7 +180,7 @@ const UI = (() => {
   function readFiles(input) {
     const files = Array.prototype.slice.call(input.files || []);
     return Promise.all(files.map(f => new Promise((res, rej) => {
-      if (f.size > 5 * 1024 * 1024) { rej(new Error(`الملف «${f.name}» أكبر من ٥ ميجابايت.`)); return; }
+      if (f.size > 5 * 1024 * 1024) { rej(new Error(`الملف «${f.name}» أكبر من 5 ميجابايت.`)); return; }
       const r = new FileReader();
       r.onload = () => res({ name: f.name, data: r.result, blob: f, size: f.size });
       r.onerror = () => rej(new Error("تعذّرت قراءة الملف " + f.name));
@@ -190,7 +209,7 @@ const UI = (() => {
 
   return {
     $, $$, esc, AR, toast, ok, err, modal, close, confirmBox,
-    ring, barline, stat, statusTag, taskClass, track, empty,
+    ring, barline, stat, stateBadge, GLYPH, statusTag, taskClass, track, empty,
     readFiles, download, toCSV,
   };
 })();

@@ -5,7 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>نظام إدارة المهام واتفاقية مستوى الخدمة — جمعية بيان</title>
 <meta name="description" content="نظام إدارة المهام ومتابعة الإنجاز والالتزام باتفاقية مستوى الخدمة — جمعية بيان">
+<meta name="color-scheme" content="light dark">
+
+<!-- تثبيت الوضع قبل الرسم، حتى لا تومض الشاشة البيضاء عند اختيار الوضع الليلي -->
+<script>
+  try {
+    var t = localStorage.getItem("bayan_theme");
+    if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="assets/logo.png">
 </head>
 <body>
 
@@ -15,35 +30,38 @@
 <!-- ==================== التطبيق ==================== -->
 <div id="app" hidden>
 
-  <header class="topbar">
+  <aside class="sidebar">
     <div class="brand">
       <div class="mark">
         <img src="assets/logo.png" alt=""
-             onerror="this.replaceWith(document.createTextNode('📗'))">
+             onerror="this.replaceWith(document.createTextNode('◈'))">
       </div>
       <div>
         <b>نظام إدارة المهام</b>
-        <span>جمعية بيان — اتفاقية مستوى الخدمة</span>
+        <span>جمعية بيان</span>
       </div>
     </div>
 
-    <span id="mode-tag" class="tag grey"></span>
-    <div class="whoami" id="whoami"></div>
-    <button class="icon-btn" id="refresh" title="تحديث البيانات">🔄</button>
-    <button class="icon-btn" id="logout">خروج</button>
-  </header>
+    <nav class="nav" id="nav" aria-label="التنقّل الرئيسي"></nav>
 
-  <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      <div style="text-align:center;padding:0 0 8px"><span id="mode-tag" class="tag"></span></div>
+      <div class="userbox" id="whoami"></div>
+      <div class="side-actions">
+        <button class="icon-btn" id="theme" title="تبديل الوضع الليلي" aria-label="تبديل الوضع الليلي"></button>
+        <button class="icon-btn" id="refresh" title="تحديث البيانات">↻</button>
+        <button class="icon-btn" id="logout" title="تسجيل الخروج">خروج</button>
+      </div>
+    </div>
+  </aside>
 
-  <main class="wrap" id="view"></main>
+  <main class="main">
+    <div class="wrap" id="view"></div>
+  </main>
 
-  <footer>
-    نظام بيان لإدارة المهام · «خيركم من تعلّم القرآن وعلّمه»<br>
-    <span class="small">المدة الافتراضية خمسة أيام عمل — الأحد إلى الخميس</span>
-  </footer>
 </div>
 
-<div id="toasts"></div>
+<div id="toasts" role="status" aria-live="polite"></div>
 
 <!-- مكتبة Supabase — تُستخدم فقط عند تعبئة المفاتيح في config.js -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"

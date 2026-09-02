@@ -9,14 +9,14 @@
 -- حتى لو تلاعب بشيفرة الصفحة.
 -- =============================================================
 
--- ---------- ١. الإعدادات العامة ----------
+-- ---------- 1. الإعدادات العامة ----------
 create extension if not exists "uuid-ossp";
 
 -- توقيت الجمعية — تُحتسب عليه أيام العمل وساعة القطع
 create or replace function public.org_tz() returns text
 language sql immutable as $$ select 'Asia/Riyadh' $$;
 
--- ---------- ٢. الجداول ----------
+-- ---------- 2. الجداول ----------
 
 create table if not exists public.departments (
   id          text primary key,
@@ -115,7 +115,7 @@ create table if not exists public.task_files (
 create index if not exists files_task_idx on public.task_files(task_id);
 
 
--- ---------- ٣. احتساب أيام العمل ----------
+-- ---------- 3. احتساب أيام العمل ----------
 -- أيام العمل: الأحد (0) إلى الخميس (4) بتوقيت الرياض، عدا العطل المسجّلة.
 
 create or replace function public.is_working_day(p_date date)
@@ -125,7 +125,7 @@ returns boolean language sql stable as $$
 $$;
 
 -- تاريخ الاستحقاق = نهاية دوام يوم العمل رقم n بعد لحظة البدء الفعلية.
--- قاعدة القطع: الطلب المقبول بعد الساعة ٢ ظهراً يُحتسب من يوم العمل التالي.
+-- قاعدة القطع: الطلب المقبول بعد الساعة 2 ظهراً يُحتسب من يوم العمل التالي.
 create or replace function public.add_working_days(p_from timestamptz, p_days int)
 returns timestamptz language plpgsql stable as $$
 declare
@@ -174,7 +174,7 @@ returns int language sql immutable as $$
 $$;
 
 
--- ---------- ٤. دوال الهوية والصلاحية ----------
+-- ---------- 4. دوال الهوية والصلاحية ----------
 -- SECURITY DEFINER لتفادي التكرار اللانهائي في سياسات profiles.
 
 create or replace function public.my_role() returns text
@@ -191,7 +191,7 @@ create or replace function public.is_owner() returns boolean
 language sql stable as $$ select public.my_role() = 'owner' $$;
 
 
--- ---------- ٥. توليد رقم المتابعة وتسجيل الأحداث ----------
+-- ---------- 5. توليد رقم المتابعة وتسجيل الأحداث ----------
 
 create or replace function public.tasks_before_insert()
 returns trigger language plpgsql as $$
@@ -239,7 +239,7 @@ create trigger trg_auth_user_created after insert on auth.users
   for each row execute function public.handle_new_user();
 
 
--- ---------- ٦. محرّك الإجراءات (مسار الطلب ومسار التنفيذ) ----------
+-- ---------- 6. محرّك الإجراءات (مسار الطلب ومسار التنفيذ) ----------
 -- كل تغيير في حالة المهمة يمر من هنا حصراً: لا توجد سياسة UPDATE على
 -- جدول tasks، فلا يستطيع أحد تعديل حالة أو تاريخ استحقاق يدوياً.
 
@@ -323,7 +323,7 @@ begin
     raise exception 'اختر المنفّذ المكلَّف.';
   end if;
   if p_action = 'close' and (p_satisfaction is null or p_satisfaction not between 1 and 5) then
-    raise exception 'اختر تقييم الخدمة من ١ إلى ٥.';
+    raise exception 'اختر تقييم الخدمة من 1 إلى 5.';
   end if;
 
   note := coalesce(nullif(trim(p_note),''), nullif(trim(p_reason),''), '');
@@ -379,7 +379,7 @@ begin
 end $$;
 
 
--- ---------- ٧. مؤشرات جاهزة ----------
+-- ---------- 7. مؤشرات جاهزة ----------
 
 create or replace view public.v_task_status as
 select t.*,
@@ -417,7 +417,7 @@ left join public.v_task_status v on v.assignee_id = p.id
 group by p.id, p.full_name, p.department_id;
 
 
--- ---------- ٨. سياسات RLS ----------
+-- ---------- 8. سياسات RLS ----------
 
 alter table public.departments enable row level security;
 alter table public.profiles    enable row level security;
@@ -489,7 +489,7 @@ create policy file_insert on public.task_files for insert to authenticated
               and exists (select 1 from public.tasks t where t.id = task_id));
 
 
--- ---------- ٩. مخزن المرفقات ----------
+-- ---------- 9. مخزن المرفقات ----------
 insert into storage.buckets (id, name, public)
 values ('task-files', 'task-files', false)
 on conflict (id) do nothing;
@@ -507,7 +507,7 @@ create policy tf_write on storage.objects for insert to authenticated
     where t.id::text = split_part(name, '/', 1)));
 
 
--- ---------- ١٠. الصلاحيات ----------
+-- ---------- 10. الصلاحيات ----------
 grant usage on schema public to authenticated;
 grant select on all tables in schema public to authenticated;
 grant insert on public.tasks, public.task_files to authenticated;

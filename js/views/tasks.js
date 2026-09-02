@@ -58,7 +58,7 @@ const Tasks = (() => {
 
     el.innerHTML = `
       <div class="page-head">
-        <h2>📋 المهام</h2>
+        <h2>المهام</h2>
         <div class="sp">
           <button class="btn" id="t-new">➕ رفع طلب جديد</button>
           <button class="btn ghost" id="t-csv">⬇️ تصدير CSV</button>
@@ -189,7 +189,7 @@ const Tasks = (() => {
             </select></div>
           <div class="field"><label>المرفقات</label>
             <input id="nt-files" type="file" multiple>
-            <div class="help">حتى ٥ ميجابايت للملف الواحد.</div></div>
+            <div class="help">حتى 5 ميجابايت للملف الواحد.</div></div>
         </div>`,
       foot: `<button class="btn" id="nt-go">📤 إرسال الطلب</button>
              <button class="btn ghost" onclick="UI.close()">إلغاء</button>`,
@@ -216,7 +216,7 @@ const Tasks = (() => {
                 <span class="tag ok">⏱️ المدة: ${SLA.dayWord(days)}</span>
                 <span class="tag grey">قناة الطلب: ${esc(s.channel)}</span>
               </div>
-              <p class="small" style="margin:10px 0 6px"><b style="color:var(--deep)">
+              <p class="small" style="margin:10px 0 6px"><b style="color:var(--ink)">
                 أكّد اكتمال المتطلبات — الطلب الناقص يُعاد ولا تبدأ مدته:</b></p>
               <div class="checks" id="nt-reqs">
                 ${s.reqs.map((r, i) => `<label class="check">
@@ -237,7 +237,7 @@ const Tasks = (() => {
           const s = App.svc(sSel.value);
           if (!s) return UI.err("اختر الخدمة المطلوبة.");
           const desc = UI.$("#nt-desc", ov).value.trim();
-          if (desc.length < 10) return UI.err("اكتب تفاصيل الطلب (١٠ أحرف على الأقل).");
+          if (desc.length < 10) return UI.err("اكتب تفاصيل الطلب (10 أحرف على الأقل).");
           const boxes = UI.$$("#nt-reqs input", ov);
           if (boxes.some(b => !b.checked))
             return UI.err("أكّد اكتمال جميع المتطلبات قبل الإرسال.");
@@ -327,20 +327,20 @@ const Tasks = (() => {
                 ? `<span class="tag danger">تجاوزت المدة بـ ${AR(Math.abs(SLA.daysLeft(t, now)))} يوم عمل</span>`
                 : `<span class="tag ok">${SLA.isDone(t) ? "أُنجزت في الموعد" : SLA.relDays(SLA.daysLeft(t, now))}</span>`)}
             ${kv("تقييم المستفيد", t.satisfaction
-              ? `<span class="tag gold">${"★".repeat(t.satisfaction)}${"☆".repeat(5 - t.satisfaction)} ${AR(t.satisfaction)}/٥</span>`
+              ? `<span class="tag gold">${"★".repeat(t.satisfaction)}${"☆".repeat(5 - t.satisfaction)} ${AR(t.satisfaction)}/5</span>`
               : "—")}
           </tbody></table></div>
         </div>
 
-        <h4 style="margin:18px 0 6px;color:var(--deep)">📝 تفاصيل الطلب</h4>
+        <h4 style="margin:18px 0 6px;color:var(--ink)">تفاصيل الطلب</h4>
         <div class="panel tight small" style="white-space:pre-wrap">${esc(t.description || "—")}</div>
 
-        ${s ? `<h4 style="margin:18px 0 6px;color:var(--deep)">📌 متطلبات الخدمة</h4>
+        ${s ? `<h4 style="margin:18px 0 6px;color:var(--ink)">متطلبات الخدمة</h4>
           <ul class="small" style="padding-right:20px">${s.reqs.map(r => `<li>${esc(r)}</li>`).join("")}</ul>
-          <h4 style="margin:14px 0 6px;color:var(--deep)">🔧 مسار التنفيذ المعتمد لهذه الخدمة</h4>
+          <h4 style="margin:14px 0 6px;color:var(--ink)">مسار التنفيذ المعتمد لهذه الخدمة</h4>
           <ol class="small" style="padding-right:20px">${s.flow.map(f => `<li>${esc(f)}</li>`).join("")}</ol>` : ""}
 
-        <h4 style="margin:18px 0 6px;color:var(--deep)">📎 المرفقات (${AR(files.length)})</h4>
+        <h4 style="margin:18px 0 6px;color:var(--ink)">المرفقات (${AR(files.length)})</h4>
         ${files.length ? `<div class="files">${files.map(f => `
           <div class="file"><span>📄</span><span class="fname">${esc(f.file_name)}</span>
             <a href="${f.url || f.data || "#"}" download="${esc(f.file_name)}" target="_blank">تنزيل</a>
@@ -349,7 +349,7 @@ const Tasks = (() => {
         <button class="btn ghost sm" id="td-addfile" style="margin-top:9px">➕ إضافة مرفق</button>
         <input type="file" id="td-file-input" multiple hidden>
 
-        <h4 style="margin:20px 0 6px;color:var(--deep)">🕓 سجل الإجراءات</h4>
+        <h4 style="margin:20px 0 6px;color:var(--ink)">سجل الإجراءات</h4>
         <ul class="timeline">${events.map(e => `
           <li>
             <b>${esc((WF.STATUS[e.to_status] || {}).label || e.to_status)}</b>
@@ -421,9 +421,9 @@ const Tasks = (() => {
         ${needs.indexOf("satisfaction") !== -1 ? `
           <div class="field req"><label>تقييم الخدمة</label>
             <select id="ac-sat">
-              <option value="5">٥ — ممتاز</option><option value="4">٤ — جيد جداً</option>
-              <option value="3">٣ — جيد</option><option value="2">٢ — ضعيف</option>
-              <option value="1">١ — ضعيف جداً</option>
+              <option value="5">5 — ممتاز</option><option value="4">4 — جيد جداً</option>
+              <option value="3">3 — جيد</option><option value="2">2 — ضعيف</option>
+              <option value="1">1 — ضعيف جداً</option>
             </select></div>` : ""}
 
         ${needs.indexOf("reason") !== -1 ? `
@@ -451,9 +451,9 @@ const Tasks = (() => {
             note: g("#ac-note"),
           };
           if (needs.indexOf("reason") !== -1 && extra.reason.length < 5)
-            return UI.err("اكتب السبب بوضوح (٥ أحرف على الأقل).");
+            return UI.err("اكتب السبب بوضوح (5 أحرف على الأقل).");
           if (needs.indexOf("note") !== -1 && extra.note.length < 5)
-            return UI.err("اكتب ملاحظة موجزة (٥ أحرف على الأقل).");
+            return UI.err("اكتب ملاحظة موجزة (5 أحرف على الأقل).");
           if (needs.indexOf("assignee") !== -1 && !extra.assignee)
             return UI.err("اختر المنفّذ المكلَّف.");
 

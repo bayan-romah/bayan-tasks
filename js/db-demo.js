@@ -57,7 +57,7 @@ const DemoDB = (() => {
   }
 
   /* أداء مستهدف لكل إدارة — معايَر بحيث تظهر الحالات الثلاث في اللوحة:
-     إدارات خضراء (≥٩٠٪) وصفراء (٧٥–٩٠٪) وحمراء (<٧٥٪) بعد إضافة
+     إدارات خضراء (≥90%) وصفراء (75–90%) وحمراء (<75%) بعد إضافة
      المهام المتأخرة القائمة المذكورة أدناه. */
   const TARGET = {
     rel: 1.00, hr: 1.00, edu_f: 1.00, vol: 0.97,   // متوقَّع أخضر
@@ -78,11 +78,11 @@ const DemoDB = (() => {
       const pool = staff.length ? staff : (mgr ? [mgr] : []);
       const target = TARGET[dept.id] || 0.9;
 
-      const n = 12 + Math.floor(rnd() * 5);   // ١٢–١٦ مهمة لكل إدارة
+      const n = 12 + Math.floor(rnd() * 5);   // 12–16 مهمة لكل إدارة
       for (let i = 0; i < n; i++) {
         const svc = pick(svcs);
         const requester = pick(requesters.filter(p => p.department_id !== dept.id).concat(requesters));
-        const ageDays = Math.floor(rnd() * 155);          // خلال ~٥ أشهر
+        const ageDays = Math.floor(rnd() * 155);          // خلال ~5 أشهر
         const created = new Date(today.getTime() - ageDays * 86400000);
         created.setHours(8 + Math.floor(rnd() * 7), Math.floor(rnd() * 60), 0, 0);
 
@@ -203,7 +203,7 @@ const DemoDB = (() => {
         const svc = pick(svcs);
         const requester = pick(requesters);
         const assignee = pool.length ? pick(pool) : null;
-        const overdueBy = 1 + Math.floor(rnd() * 9);   // متأخرة ١–٩ أيام عمل
+        const overdueBy = 1 + Math.floor(rnd() * 9);   // متأخرة 1–9 أيام عمل
 
         /* ارجع للخلف بعدد أيام تقويمية صحيح يغطي المدة + التأخر + العطل */
         const backDays = Math.round((svc.sla_days + overdueBy) * 1.5) + 2;
@@ -432,7 +432,7 @@ const DemoDB = (() => {
           break;
         case "close": {
           const sat = Number(extra.satisfaction);
-          if (!sat || sat < 1 || sat > 5) throw new Error("اختر تقييم الخدمة من ١ إلى ٥.");
+          if (!sat || sat < 1 || sat > 5) throw new Error("اختر تقييم الخدمة من 1 إلى 5.");
           t.closed_at = iso(now);
           t.satisfaction = sat;
           note = "تم الاستلام — التقييم: " + sat + "/5" + (note ? " — " + note : "");

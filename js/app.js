@@ -65,14 +65,33 @@ const App = (() => {
       : deptTasks().filter(t => ["submitted", "returned", "pending_approval"].indexOf(t.status) !== -1).length;
 
     const list = [
-      { id: "dashboard", label: "📊 لوحة المتابعة" },
-      { id: "tasks", label: r === "employee" ? "📋 مهامي وطلباتي" : "📋 المهام", n: inbox },
-      { id: "catalog", label: "🔎 دليل الخدمات" },
-      { id: "reports", label: "📈 تقارير الأداء" },
-      { id: "rules", label: "⚖️ قواعد الاتفاقية" },
+      { id: "dashboard", ic: "◫", label: "لوحة المتابعة" },
+      { id: "tasks", ic: "☰", label: r === "employee" ? "مهامي وطلباتي" : "المهام", n: inbox },
+      { id: "catalog", ic: "◎", label: "دليل الخدمات" },
+      { id: "reports", ic: "◱", label: "تقارير الأداء" },
+      { id: "rules", ic: "§", label: "قواعد الاتفاقية" },
     ];
-    if (r === "owner") list.push({ id: "admin", label: "⚙️ الإعدادات والمستخدمون" });
+    if (r === "owner") list.push({ id: "admin", ic: "⚙", label: "الإعدادات والمستخدمون" });
     return list.map(t => Object.assign(t, { late }));
+  }
+
+  /* ---------- الوضع الليلي ---------- */
+  const THEME_KEY = "bayan_theme";
+
+  function currentTheme() {
+    const t = document.documentElement.dataset.theme;
+    if (t) return t;
+    return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  function applyTheme(t) {
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem(THEME_KEY, t); } catch (e) { /* وضع التصفح الخاص */ }
+    const b = $("#theme");
+    if (b) {
+      b.textContent = t === "dark" ? "☀" : "☾";
+      b.title = t === "dark" ? "التحويل للوضع النهاري" : "التحويل للوضع الليلي";
+    }
   }
 
   function go(route) {
@@ -89,13 +108,20 @@ const App = (() => {
     $("#app").hidden = false;
 
     const m = state.me;
+    const initials = m.full_name.replace(/^أ\.\s*/, "").trim().charAt(0) || "؟";
     $("#whoami").innerHTML = `
-      <b>${UI.esc(m.full_name)}</b>
-      <span class="role-tag">${ROLE_LABEL[m.role]}${m.department_id ? " · " + UI.esc(dept(m.department_id).name) : ""}</span>`;
+      <span class="avatar">${UI.esc(initials)}</span>
+      <span class="meta">
+        <b>${UI.esc(m.full_name)}</b>
+        <span>${ROLE_LABEL[m.role]}${m.department_id ? " · " + UI.esc(dept(m.department_id).name) : ""}</span>
+      </span>`;
 
     $("#nav").innerHTML = tabs().map(t => `
-      <button data-r="${t.id}" class="${state.route === t.id ? "on" : ""}">
-        ${t.label}${t.n ? `<span class="badge-n">${UI.AR(t.n)}</span>` : ""}
+      <button data-r="${t.id}" class="${state.route === t.id ? "on" : ""}"
+              ${state.route === t.id ? 'aria-current="page"' : ""}>
+        <span class="ic" aria-hidden="true">${t.ic}</span>
+        <span>${t.label}</span>
+        ${t.n ? `<span class="badge-n" title="بانتظار إجراء">${UI.AR(t.n)}</span>` : ""}
       </button>`).join("");
 
     const body = $("#view");
@@ -113,18 +139,18 @@ const App = (() => {
   /* ---------- قواعد الاتفاقية ---------- */
   function renderRules(el) {
     el.innerHTML = `
-      <div class="page-head"><h2>⚖️ قواعد اتفاقية مستوى الخدمة</h2>
+      <div class="page-head"><h2>قواعد اتفاقية مستوى الخدمة</h2>
         <div class="sp"><button class="btn ghost" onclick="window.print()">🖨️ طباعة / حفظ PDF</button></div>
       </div>
 
       <div class="panel">
-        <p class="small"><b style="color:var(--deep)">أيام العمل:</b> ${QAWAID.workDays}
-           &nbsp;·&nbsp; <b style="color:var(--deep)">ساعات العمل:</b> ${QAWAID.workHours}
-           &nbsp;·&nbsp; <b style="color:var(--deep)">المدة الافتراضية:</b> ${SLA.dayWord(CONFIG.DEFAULT_SLA_DAYS)}</p>
+        <p class="small"><b style="color:var(--ink)">أيام العمل:</b> ${QAWAID.workDays}
+           &nbsp;·&nbsp; <b style="color:var(--ink)">ساعات العمل:</b> ${QAWAID.workHours}
+           &nbsp;·&nbsp; <b style="color:var(--ink)">المدة الافتراضية:</b> ${SLA.dayWord(CONFIG.DEFAULT_SLA_DAYS)}</p>
         <ul style="margin-top:10px">${QAWAID.rules.map(r => `<li>${UI.esc(r)}</li>`).join("")}</ul>
       </div>
 
-      <h3 class="section-title">🔵 مسار الطلب &nbsp;·&nbsp; 🟢 مسار التنفيذ</h3>
+      <h3 class="section-title">المساران: الطلب والتنفيذ</h3>
       <div class="panel">
         ${UI.track(WF.TRACK_REQUEST.steps.map(s => Object.assign({ cls: "done" }, s)),
                    "request", WF.TRACK_REQUEST.title, WF.TRACK_REQUEST.hint)}
@@ -139,15 +165,15 @@ const App = (() => {
 
       <div class="grid-2" style="margin-top:16px">
         <div class="panel">
-          <h3>⏫ آلية التصعيد عند التأخر</h3>
+          <h3>آلية التصعيد عند التأخر</h3>
           <ul>${QAWAID.escalation.map(r => `<li>${UI.esc(r)}</li>`).join("")}</ul>
         </div>
         <div class="panel">
-          <h3>🎯 عتبات ألوان المؤشر</h3>
+          <h3>عتبات ألوان المؤشر</h3>
           <div class="small" style="display:flex;flex-direction:column;gap:9px;margin-top:6px">
-            <div><span class="tag ok">أخضر — ملتزم</span> نسبة الالتزام ٩٠٪ فأعلى</div>
-            <div><span class="tag warn">أصفر — تحت المتابعة</span> النسبة من ٧٥٪ إلى أقل من ٩٠٪</div>
-            <div><span class="tag danger">أحمر — متعثر</span> النسبة أقل من ٧٥٪</div>
+            <div><span class="tag ok">أخضر — ملتزم</span> نسبة الالتزام 90% فأعلى</div>
+            <div><span class="tag warn">أصفر — تحت المتابعة</span> النسبة من 75% إلى أقل من 90%</div>
+            <div><span class="tag danger">أحمر — متعثر</span> النسبة أقل من 75%</div>
           </div>
           <div class="notice warn" style="margin-top:14px">
             <b>نسبة الالتزام</b> = المنجز في الموعد ÷ (المنجز + المتأخر).<br>
@@ -156,7 +182,7 @@ const App = (() => {
         </div>
       </div>
 
-      <h3 class="section-title">📊 مؤشرات قياس الالتزام</h3>
+      <h3 class="section-title">مؤشرات قياس الالتزام</h3>
       <div class="panel tbl-wrap">
         <table>
           <thead><tr><th>المؤشر</th><th>المستهدف</th><th>ملاحظة</th></tr></thead>
@@ -247,7 +273,7 @@ const App = (() => {
              <div class="field req"><label>الاسم الكامل</label><input id="su-name" type="text"></div>
              <div class="field req"><label>البريد الإلكتروني</label><input id="su-email" type="email"></div>
              <div class="field req"><label>كلمة المرور</label><input id="su-pass" type="password">
-               <div class="help">٨ أحرف على الأقل.</div></div>`,
+               <div class="help">8 أحرف على الأقل.</div></div>`,
       foot: `<button class="btn" id="su-go">تسجيل</button>
              <button class="btn ghost" onclick="UI.close()">إلغاء</button>`,
       onOpen(ov) {
@@ -272,6 +298,9 @@ const App = (() => {
         <b>تعذّر تشغيل النظام.</b><br>${UI.esc(ex.message)}</div></div>`;
       return;
     }
+
+    applyTheme(currentTheme());
+    $("#theme").onclick = () => applyTheme(currentTheme() === "dark" ? "light" : "dark");
 
     $("#mode-tag").textContent = DB.mode === "demo" ? "وضع تجريبي" : "قاعدة بيانات مشتركة";
     $("#mode-tag").className = "tag " + (DB.mode === "demo" ? "warn" : "ok");

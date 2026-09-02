@@ -15,7 +15,7 @@ const Admin = (() => {
     }
 
     el.innerHTML = `
-      <div class="page-head"><h2>⚙️ الإعدادات والمستخدمون</h2></div>
+      <div class="page-head"><h2>الإعدادات والمستخدمون</h2></div>
       <div class="toolbar"><div class="row" id="ad-tabs">
         ${[["users", "👥 المستخدمون"], ["services", "🧾 الخدمات والمدد"],
            ["holidays", "📅 العطل الرسمية"], ["backup", "💾 النسخ الاحتياطي"]]
@@ -52,7 +52,7 @@ const Admin = (() => {
            وكلمة المرور الموحّدة <b>${DEMO_PASSWORD}</b>.</div>`}
 
       <div class="page-head" style="margin-top:14px">
-        <h3 style="color:var(--deep)">المستخدمون (${AR(rows.length)})</h3>
+        <h3 style="color:var(--ink)">المستخدمون (${AR(rows.length)})</h3>
         ${DB.mode === "demo" ? `<div class="sp"><button class="btn" id="u-add">➕ إضافة مستخدم</button></div>` : ""}
       </div>
 
@@ -141,7 +141,7 @@ const Admin = (() => {
         الطلبات القائمة تحتفظ بالمدة التي قُبلت بها حتى لا تتغيّر نتائج القياس بأثر رجعي.</div>
 
       <div class="page-head" style="margin-top:14px">
-        <h3 style="color:var(--deep)">الخدمات (${AR(App.state.services.length)})</h3>
+        <h3 style="color:var(--ink)">الخدمات (${AR(App.state.services.length)})</h3>
         <div class="sp"><button class="btn" id="s-add">➕ إضافة خدمة</button></div>
       </div>
 
@@ -240,13 +240,13 @@ const Admin = (() => {
 
       <div class="grid-2" style="margin-top:14px">
         <div class="panel">
-          <h3>➕ إضافة عطلة</h3>
+          <h3>إضافة عطلة</h3>
           <div class="field"><label>التاريخ</label><input type="date" id="h-date"></div>
           <div class="field"><label>المناسبة</label><input type="text" id="h-name" placeholder="مثال: إجازة عيد الفطر"></div>
           <button class="btn" id="h-add">إضافة</button>
         </div>
         <div class="panel tbl-wrap">
-          <h3>📅 العطل المسجّلة (${AR(list.length)})</h3>
+          <h3>العطل المسجّلة (${AR(list.length)})</h3>
           ${list.length ? `<table>
             <thead><tr><th>التاريخ</th><th>اليوم</th><th>المناسبة</th><th class="num">إجراء</th></tr></thead>
             <tbody>${list.map(h => `<tr>
@@ -277,7 +277,7 @@ const Admin = (() => {
     el.innerHTML = `
       <div class="grid-2">
         <div class="panel">
-          <h3>⬇️ تصدير نسخة كاملة</h3>
+          <h3>تصدير نسخة كاملة</h3>
           <p class="small muted">ملف JSON يحوي المهام والسجلات والمستخدمين والخدمات والعطل.
             احتفظ به خارج الجهاز.</p>
           <div class="actions">
@@ -287,7 +287,7 @@ const Admin = (() => {
         </div>
 
         <div class="panel">
-          <h3>⬆️ استرجاع نسخة</h3>
+          <h3>استرجاع نسخة</h3>
           ${DB.mode === "demo"
             ? `<p class="small muted">سيُستبدل محتوى النظام بالكامل بمحتوى الملف.</p>
                <div class="field" style="margin-top:10px"><input type="file" id="b-file" accept=".json"></div>
@@ -298,7 +298,7 @@ const Admin = (() => {
       </div>
 
       ${DB.mode === "demo" ? `
-      <h3 class="section-title">⚠️ منطقة الخطر</h3>
+      <h3 class="section-title">منطقة الخطر</h3>
       <div class="panel">
         <p class="small">إعادة ضبط الوضع التجريبي تحذف كل ما أدخلته وتعيد البيانات النموذجية.</p>
         <div class="actions"><button class="btn danger" id="b-reset">إعادة ضبط البيانات التجريبية</button></div>

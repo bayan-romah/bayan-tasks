@@ -31,7 +31,7 @@ const Reports = (() => {
 
     el.innerHTML = `
       <div class="page-head">
-        <h2>📈 تقرير الأداء</h2>
+        <h2>تقرير الأداء</h2>
         <div class="sp">
           <button class="btn ghost" id="r-csv">⬇️ تصدير CSV</button>
           <button class="btn ghost" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
@@ -93,32 +93,32 @@ const Reports = (() => {
           ${UI.stat(AR(s.open), "قيد العمل", "info")}
           ${UI.stat(AR(s.late), "تجاوزت المدة", s.late ? "danger" : "ok")}
           ${UI.stat(AR(s.cancelled), "ملغاة / مرفوضة", "")}
-          ${UI.stat(avgSat == null ? "—" : AR(String(avgSat).replace(".", "٫")) + "/٥", "متوسط الرضا", "info")}
+          ${UI.stat(avgSat == null ? "—" : AR(avgSat) + "/5", "متوسط الرضا", "info")}
         </div>
 
         <div class="grid-2" style="margin-top:16px">
           <div class="panel">
-            <h3>🎯 المؤشران الرئيسيان</h3>
+            <h3>المؤشران الرئيسيان</h3>
             <div style="display:flex;gap:26px;flex-wrap:wrap;justify-content:space-around;padding:6px 0">
               ${UI.ring(s.commitment, "نسبة الالتزام بالمدة")}
               ${UI.ring(s.completion, "معدل الإنجاز")}
             </div>
           </div>
           <div class="panel tbl-wrap">
-            <h3>📊 مؤشرات الاتفاقية</h3>
+            <h3>مؤشرات الاتفاقية</h3>
             <table>
               <thead><tr><th>المؤشر</th><th class="num">القيمة</th><th class="num">المستهدف</th><th class="num">النتيجة</th></tr></thead>
               <tbody>
-                ${kpiRow("نسبة الالتزام بالمدة", SLA.pctText(s.commitment), "٩٠٪ فأعلى",
+                ${kpiRow("نسبة الالتزام بالمدة", SLA.pctText(s.commitment), "90% فأعلى",
                   s.commitment == null ? null : s.commitment >= CONFIG.THRESHOLD_OK)}
-                ${kpiRow("معدل الإنجاز", SLA.pctText(s.completion), "٩٠٪ فأعلى",
+                ${kpiRow("معدل الإنجاز", SLA.pctText(s.completion), "90% فأعلى",
                   s.completion == null ? null : s.completion >= CONFIG.THRESHOLD_OK)}
-                ${kpiRow("الطلبات المعادة لنقص البيانات", SLA.pctText(retPct), "أقل من ١٠٪",
+                ${kpiRow("الطلبات المعادة لنقص البيانات", SLA.pctText(retPct), "أقل من 10%",
                   retPct == null ? null : retPct < 10)}
-                ${kpiRow("الطلبات المتجاوزة للمدة", SLA.pctText(escPct), "أقل من ٥٪",
+                ${kpiRow("الطلبات المتجاوزة للمدة", SLA.pctText(escPct), "أقل من 5%",
                   escPct == null ? null : escPct < 5)}
-                ${kpiRow("رضا مقدّمي الطلبات", avgSat == null ? "—" : AR(String(avgSat).replace(".", "٫")) + "/٥",
-                  "٤ من ٥ فأعلى", avgSat == null ? null : avgSat >= 4)}
+                ${kpiRow("رضا مقدّمي الطلبات", avgSat == null ? "—" : AR(avgSat) + "/5",
+                  "4 من 5 فأعلى", avgSat == null ? null : avgSat >= 4)}
                 ${kpiRow("متوسط أيام الإنجاز", s.avgDays == null ? "—" : SLA.dayWord(Math.round(s.avgDays)),
                   SLA.dayWord(CONFIG.DEFAULT_SLA_DAYS),
                   s.avgDays == null ? null : s.avgDays <= CONFIG.DEFAULT_SLA_DAYS)}
@@ -127,17 +127,17 @@ const Reports = (() => {
           </div>
         </div>
 
-        <h3 class="section-title">🏢 الأداء حسب الإدارة</h3>
+        <h3 class="section-title">الأداء حسب الإدارة</h3>
         ${Dashboard.deptTable(list)}
 
         ${App.state.me.role !== "employee" ? `
-          <h3 class="section-title">👥 الأداء حسب الموظف</h3>
+          <h3 class="section-title">الأداء حسب الموظف</h3>
           ${staffReport(list)}` : ""}
 
-        <h3 class="section-title">📋 الخدمات الأكثر طلباً</h3>
+        <h3 class="section-title">الخدمات الأكثر طلباً</h3>
         ${topServices(list)}
 
-        <h3 class="section-title">⏫ المهام المتأخرة</h3>
+        <h3 class="section-title">المهام المتأخرة</h3>
         ${Dashboard.lateList(list, 15)}`;
 
       UI.$$("[data-task]", body).forEach(n => n.onclick = () => Tasks.open(n.dataset.task));
@@ -168,7 +168,7 @@ const Reports = (() => {
           <td class="num">${AR(r.s.live)}</td>
           <td class="num">${AR(r.s.done)}</td>
           <td class="num" style="${r.s.late ? "color:var(--danger);font-weight:700" : ""}">${AR(r.s.late)}</td>
-          <td class="num">${r.s.avgDays == null ? "—" : AR(String(r.s.avgDays).replace(".", "٫"))}</td>
+          <td class="num">${r.s.avgDays == null ? "—" : AR(r.s.avgDays)}</td>
           <td>${UI.barline(r.s.commitment)}</td>
         </tr>`).join("")}</tbody></table></div>`;
     }
@@ -193,7 +193,7 @@ const Reports = (() => {
           <td>${esc(x.r.name)}</td>
           <td class="small">${esc(App.deptName(x.r.dept))}</td>
           <td class="num">${AR(x.s.live)}</td>
-          <td class="num">${x.s.avgDays == null ? "—" : AR(String(x.s.avgDays).replace(".", "٫"))}</td>
+          <td class="num">${x.s.avgDays == null ? "—" : AR(x.s.avgDays)}</td>
           <td>${UI.barline(x.s.commitment)}</td>
         </tr>`).join("")}</tbody></table></div>`;
     }

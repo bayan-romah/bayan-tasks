@@ -22,7 +22,7 @@ const Catalog = (() => {
 
     el.innerHTML = `
       <div class="page-head">
-        <h2>🔎 دليل الخدمات</h2>
+        <h2>دليل الخدمات</h2>
         <div class="sp">
           <button class="btn" id="c-new">➕ رفع طلب جديد</button>
           <button class="btn ghost" id="c-expand">توسيع الكل</button>
@@ -62,7 +62,7 @@ const Catalog = (() => {
       <div class="cards" id="c-grid" style="grid-template-columns:repeat(auto-fill,minmax(330px,1fr))"></div>
       <div id="c-empty"></div>
 
-      <h3 class="section-title">🧾 ملخص المدد حسب الإدارة</h3>
+      <h3 class="section-title">ملخص المدد حسب الإدارة</h3>
       <div class="panel tbl-wrap" id="c-summary"></div>`;
 
     const grid = UI.$("#c-grid", el), cnt = UI.$("#c-count", el), emp = UI.$("#c-empty", el);
@@ -122,7 +122,7 @@ const Catalog = (() => {
       <tbody>${App.state.departments.map(d => {
         const svcs = all().filter(s => s.department_id === d.id);
         if (!svcs.length) return `<tr><td>${d.icon} ${esc(d.name)}</td>
-          <td class="num">٠</td><td colspan="3" class="muted small">لا توجد خدمات مسجّلة</td></tr>`;
+          <td class="num">0</td><td colspan="3" class="muted small">لا توجد خدمات مسجّلة</td></tr>`;
         const days = svcs.map(s => s.sla_days);
         const min = Math.min.apply(null, days), max = Math.max.apply(null, days);
         const avg = Math.round((days.reduce((a, b) => a + b, 0) / days.length) * 10) / 10;
@@ -131,7 +131,7 @@ const Catalog = (() => {
           <td class="num">${AR(svcs.length)}</td>
           <td class="small">${esc(svcs.filter(s => s.sla_days === min)[0].name)} — ${SLA.dayWord(min)}</td>
           <td class="small">${esc(svcs.filter(s => s.sla_days === max)[0].name)} — ${SLA.dayWord(max)}</td>
-          <td class="num">${AR(String(avg).replace(".", "٫"))}</td>
+          <td class="num">${AR(avg)}</td>
         </tr>`;
       }).join("")}</tbody></table>`;
 
