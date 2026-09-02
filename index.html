@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>نظام إدارة المهام واتفاقية مستوى الخدمة — جمعية بيان</title>
+<meta name="description" content="نظام إدارة المهام ومتابعة الإنجاز والالتزام باتفاقية مستوى الخدمة — جمعية بيان">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<!-- ==================== شاشة الدخول ==================== -->
+<div id="login" class="login-screen" hidden></div>
+
+<!-- ==================== التطبيق ==================== -->
+<div id="app" hidden>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">
+        <img src="assets/logo.png" alt=""
+             onerror="this.replaceWith(document.createTextNode('📗'))">
+      </div>
+      <div>
+        <b>نظام إدارة المهام</b>
+        <span>جمعية بيان — اتفاقية مستوى الخدمة</span>
+      </div>
+    </div>
+
+    <span id="mode-tag" class="tag grey"></span>
+    <div class="whoami" id="whoami"></div>
+    <button class="icon-btn" id="refresh" title="تحديث البيانات">🔄</button>
+    <button class="icon-btn" id="logout">خروج</button>
+  </header>
+
+  <nav class="nav" id="nav"></nav>
+
+  <main class="wrap" id="view"></main>
+
+  <footer>
+    نظام بيان لإدارة المهام · «خيركم من تعلّم القرآن وعلّمه»<br>
+    <span class="small">المدة الافتراضية خمسة أيام عمل — الأحد إلى الخميس</span>
+  </footer>
+</div>
+
+<div id="toasts"></div>
+
+<!-- مكتبة Supabase — تُستخدم فقط عند تعبئة المفاتيح في config.js -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"
+        crossorigin="anonymous"></script>
+
+<!-- الإعدادات والبيانات -->
+<script src="js/config.js"></script>
+<script src="js/seed-data.js"></script>
+
+<!-- المحرّكات -->
+<script src="js/sla.js"></script>
+<script src="js/workflow.js"></script>
+
+<!-- طبقة البيانات -->
+<script src="js/db-demo.js"></script>
+<script src="js/db-supabase.js"></script>
+
+<!-- الواجهة -->
+<script src="js/ui.js"></script>
+<script src="js/views/dashboard.js"></script>
+<script src="js/views/tasks.js"></script>
+<script src="js/views/catalog.js"></script>
+<script src="js/views/reports.js"></script>
+<script src="js/views/admin.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
