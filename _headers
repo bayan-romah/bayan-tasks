@@ -1,7 +1,13 @@
 # ترويسات أمنية — يقرأها Cloudflare Pages تلقائياً عند النشر.
 # (لا أثر لها على GitHub Pages، وهي غير ضارة هناك.)
 
+# سياسة المحتوى (CSP) — اختُبرت على النظام كاملاً قبل تثبيتها:
+#   script-src  : jsDelivr لمكتبة Supabase · unsafe-inline لازمة لأن
+#                 الواجهة تستخدم onclick/onerror داخل العناصر
+#   style-src   : خطوط Google · unsafe-inline للأنماط المضمّنة
+#   connect-src : نطاق مشروع Supabase — عدّله لو انتقلت لاستضافة ذاتية
 /*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
   X-Content-Type-Options: nosniff
   X-Frame-Options: SAMEORIGIN
   Referrer-Policy: strict-origin-when-cross-origin

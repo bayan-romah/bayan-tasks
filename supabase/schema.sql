@@ -381,7 +381,11 @@ end $$;
 
 -- ---------- 7. مؤشرات جاهزة ----------
 
-create or replace view public.v_task_status as
+-- ⚠️ security_invoker إلزامي: بدونه تعمل الـ view بصلاحيات مالكها
+-- (postgres) فتتجاوز سياسات RLS، ويصبح بإمكان أي موظف قراءة مهام
+-- كل الإدارات من خلالها. مع الخيار تعمل بصلاحيات المستخدم الحالي.
+create or replace view public.v_task_status
+with (security_invoker = true) as
 select t.*,
   (t.accepted_at is null)                                   as not_started,
   case
@@ -392,7 +396,8 @@ select t.*,
   end as is_late
 from public.tasks t;
 
-create or replace view public.v_department_kpi as
+create or replace view public.v_department_kpi
+with (security_invoker = true) as
 select d.id as department_id, d.name,
   count(*) filter (where v.status not in ('rejected','cancelled'))            as total,
   count(*) filter (where v.status in ('completed','closed'))                  as done,
@@ -404,7 +409,8 @@ from public.departments d
 left join public.v_task_status v on v.department_id = d.id
 group by d.id, d.name order by d.sort_order;
 
-create or replace view public.v_employee_kpi as
+create or replace view public.v_employee_kpi
+with (security_invoker = true) as
 select p.id as user_id, p.full_name, p.department_id,
   count(v.id) filter (where v.status not in ('rejected','cancelled'))          as total,
   count(v.id) filter (where v.status in ('completed','closed'))                as done,
