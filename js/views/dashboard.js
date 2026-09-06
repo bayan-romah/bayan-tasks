@@ -241,7 +241,7 @@ const Dashboard = (() => {
       ${statRow(s)}
 
       <div class="grid-2" style="margin-top:16px">
-        ${ringsPanel(s, "🎯 مؤشر الالتزام العام")}
+        ${ringsPanel(s, "مؤشر الالتزام العام")}
         ${trend(tasks)}
       </div>
 
@@ -288,7 +288,7 @@ const Dashboard = (() => {
         </div>` : ""}
 
       <div class="grid-2" style="margin-top:16px">
-        ${ringsPanel(s, "🎯 التزام الإدارة")}
+        ${ringsPanel(s, "التزام الإدارة")}
         ${trend(inbound)}
       </div>
 
@@ -339,7 +339,7 @@ const Dashboard = (() => {
       </div>` : ""}
 
       <div class="grid-2" style="margin-top:16px">
-        ${ringsPanel(s, "🎯 التزامي الشخصي")}
+        ${ringsPanel(s, "التزامي الشخصي")}
         <div class="panel">
           <h3>أقرب المهام استحقاقاً</h3>
           ${openMine.length ? `<ul class="timeline">${openMine.slice(0, 6).map(t => `
