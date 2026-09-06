@@ -1,0 +1,14 @@
+# ترويسات أمنية — يقرأها Cloudflare Pages تلقائياً عند النشر.
+# (لا أثر لها على GitHub Pages، وهي غير ضارة هناك.)
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()
+  X-Robots-Tag: noindex, nofollow
+
+# ملف الإعدادات يحمل مفتاح Supabase العام — لا يُخزَّن في الذاكرة المؤقتة
+# حتى يسري أي تغيير فيه فوراً على كل الأجهزة.
+/js/config.js
+  Cache-Control: no-cache, must-revalidate
