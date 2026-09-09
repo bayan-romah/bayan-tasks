@@ -26,9 +26,15 @@ const App = (() => {
      وهذه نسخة موازية لضبط ما تعرضه كل شاشة */
   const myTasks = () => state.tasks.filter(t => t.assignee_id === state.me.id);
   const myRequests = () => state.tasks.filter(t => t.requester_id === state.me.id);
+  /* مهام الإدارة = ما تنفّذه + ما أُسندت لها مرحلة فيه */
   const deptTasks = () => state.me.role === "owner"
     ? state.tasks
-    : state.tasks.filter(t => t.department_id === state.me.department_id);
+    : state.tasks.filter(t => t.department_id === state.me.department_id
+                           || t.delegated_to === state.me.department_id);
+
+  /* المهام المُسندة لإدارتي من إدارة أخرى وتنتظر إنهاء مرحلتها */
+  const delegatedToMe = () => state.tasks.filter(t =>
+    t.status === "delegated" && t.delegated_to === state.me.department_id);
 
   /* نطاق اللوحة حسب الدور */
   function scopeTasks() {
@@ -62,7 +68,13 @@ const App = (() => {
     const late = scopeTasks().filter(t => SLA.isOpen(t) && SLA.isLate(t, state.now)).length;
     const inbox = r === "employee"
       ? myTasks().filter(t => SLA.isOpen(t)).length
-      : deptTasks().filter(t => ["submitted", "returned", "pending_approval"].indexOf(t.status) !== -1).length;
+      : deptTasks().filter(t =>
+          /* بانتظار قرار مدير الإدارة المنفِّذة */
+          (t.department_id === state.me.department_id &&
+            ["submitted", "returned", "accepted", "pending_approval"].indexOf(t.status) !== -1) ||
+          /* أو مرحلة أُسندت لإدارته وتنتظر إنهاءها */
+          (t.status === "delegated" && t.delegated_to === state.me.department_id)
+        ).length;
 
     const list = [
       { id: "dashboard", ic: "◫", label: "لوحة المتابعة" },
@@ -328,7 +340,7 @@ const App = (() => {
   return {
     state, boot, render, refresh, go, loadAll,
     dept, svc, user, userName, deptName, ROLE_LABEL,
-    myTasks, myRequests, deptTasks, scopeTasks,
+    myTasks, myRequests, deptTasks, delegatedToMe, scopeTasks,
   };
 })();
 

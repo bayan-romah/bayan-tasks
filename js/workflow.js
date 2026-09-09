@@ -18,6 +18,7 @@ const WF = (() => {
     accepted:         { label: "مقبول — بدأ احتساب المدة", short: "مقبول",        tag: "ok",    track: "exec", step: 1 },
     assigned:         { label: "مُسند لمنفّذ",             short: "مُسند",         tag: "ok",    track: "exec", step: 2 },
     in_progress:      { label: "قيد التنفيذ",              short: "قيد التنفيذ",   tag: "gold",  track: "exec", step: 3 },
+    delegated:        { label: "مرحلة مُسندة لإدارة أخرى",  short: "مُسندة لإدارة", tag: "info",  track: "exec", step: 3 },
     pending_approval: { label: "بانتظار اعتماد المدير",    short: "بانتظار الاعتماد", tag: "gold", track: "exec", step: 4 },
     completed:        { label: "منجزة",                    short: "منجزة",        tag: "ok",    track: "exec", step: 5 },
     closed:           { label: "مغلقة",                    short: "مغلقة",        tag: "ok",    track: "exec", step: 6 },
@@ -86,6 +87,24 @@ const WF = (() => {
       who: "assignee", style: "",
       hint: "تأكيد استلام المهمة والبدء فيها." },
 
+    /* ---- إسناد مرحلة لإدارة أخرى ثم استكمال الإدارة الأصلية ---- */
+    { id: "delegate", label: "إسناد المرحلة لإدارة أخرى", icon: "🔀",
+      from: ["accepted", "assigned", "in_progress"], to: "delegated",
+      who: "dept_manager", style: "ghost", needs: ["dept", "note"],
+      reasonLabel: "ما المطلوب من الإدارة الأخرى؟",
+      hint: "المدة الأصلية تستمر ولا يتغيّر تاريخ الاستحقاق. تُحتسب أيام كل إدارة منفصلة في التقارير." },
+
+    { id: "return_delegation", label: "إنهاء المرحلة وإرجاع الطلب", icon: "↪️",
+      from: ["delegated"], to: "in_progress",
+      who: "delegated_manager", style: "", needs: ["note"],
+      reasonLabel: "ما الذي أنجزته إدارتك؟",
+      hint: "يرجع الطلب للإدارة الأصلية لتستكمل بقية الخطوات." },
+
+    { id: "recall_delegation", label: "سحب الإسناد", icon: "↩️",
+      from: ["delegated"], to: "in_progress",
+      who: "dept_manager", style: "ghost", needs: ["reason"], reasonLabel: "سبب السحب",
+      hint: "متاح لمدير الإدارة الأصلية لاستعادة الطلب قبل انتهاء الإدارة الأخرى." },
+
     { id: "submit_work", label: "رفع المخرجات للاعتماد", icon: "📎", from: ["in_progress"], to: "pending_approval",
       who: "assignee", style: "", needs: ["note"], reasonLabel: "وصف ما تم إنجازه",
       hint: "أرفق المخرجات أولاً ثم ارفعها لمدير الإدارة." },
@@ -116,6 +135,9 @@ const WF = (() => {
     switch (action.who) {
       case "dept_manager":
         return me.role === "manager" && me.department_id === task.department_id;
+      case "delegated_manager":
+        /* مدير الإدارة المُسنَد إليها المرحلة — وحده من يُنهيها */
+        return me.role === "manager" && me.department_id === task.delegated_to;
       case "assignee":
         return task.assignee_id === me.id ||
           (me.role === "manager" && me.department_id === task.department_id);
@@ -125,6 +147,35 @@ const WF = (() => {
       default:
         return false;
     }
+  }
+
+  /* أيام العمل التي أمضاها الطلب عند كل إدارة — من سجل الأحداث،
+     فلا تُحتسب أيام إدارة على أخرى في التقارير. */
+  function deptDurations(task, events) {
+    if (!events || !events.length) return [];
+    const spans = [];
+    let holder = task.department_id, since = task.accepted_at || task.created_at;
+
+    events.forEach(e => {
+      if (e.to_status === "delegated" && e.delegated_to) {
+        spans.push({ dept: holder, from: since, to: e.created_at });
+        holder = e.delegated_to; since = e.created_at;
+      } else if (e.from_status === "delegated" && e.to_status === "in_progress") {
+        spans.push({ dept: holder, from: since, to: e.created_at });
+        holder = task.department_id; since = e.created_at;
+      }
+    });
+
+    const end = task.completed_at || task.closed_at || new Date().toISOString();
+    spans.push({ dept: holder, from: since, to: end });
+
+    const totals = {};
+    spans.forEach(s => {
+      if (!s.from) return;
+      const d = Math.max(0, SLA.workingDaysBetween(s.from, s.to));
+      totals[s.dept] = (totals[s.dept] || 0) + d;
+    });
+    return Object.keys(totals).map(k => ({ dept: k, days: totals[k] }));
   }
 
   const actionsFor = (task, me) => ACTIONS.filter(a => can(a, task, me));
@@ -162,5 +213,6 @@ const WF = (() => {
     return { request, exec, started };
   }
 
-  return { STATUS, TRACK_REQUEST, TRACK_EXEC, ACTIONS, can, actionsFor, actionById, trackState };
+  return { STATUS, TRACK_REQUEST, TRACK_EXEC, ACTIONS, can, actionsFor, actionById,
+           trackState, deptDurations };
 })();

@@ -50,7 +50,8 @@ const SLA = (() => {
 
   const fmtDate = d => {
     d = toDate(d); if (!d || isNaN(d)) return "—";
-    return `${AR_DAYS[d.getDay()]} ${AR(d.getDate())} ${AR_MONTHS[d.getMonth()]} ${AR(d.getFullYear())}`;
+    /* بلا AR للسنة — فاصل الآلاف يحوّل 2026 إلى 2,026 */
+    return `${AR_DAYS[d.getDay()]} ${d.getDate()} ${AR_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
   };
 
   const fmtShort = d => {

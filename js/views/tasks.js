@@ -295,6 +295,12 @@ const Tasks = (() => {
           <b>${esc(escl.label)}:</b> تجاوزت المهمة مدتها بـ ${AR(escl.over)} يوم عمل —
           التصعيد إلى ${esc(escl.to)}.</div>` : ""}
 
+        ${t.status === "delegated" && t.delegated_to ? `<div class="notice info">
+          <b>مرحلة مُسندة إلى ${esc(App.deptName(t.delegated_to))}</b> منذ
+          ${SLA.fmtDate(t.delegated_at)}. الطلب يعود لـ${esc(App.dept(t.department_id).name)}
+          بعد انتهائها، و<b>تاريخ الاستحقاق لم يتغيّر</b>: ${SLA.fmtDate(t.due_at)}.
+        </div>` : ""}
+
         <div class="panel tight" style="margin-bottom:14px">
           ${UI.track(tr.request, "request", WF.TRACK_REQUEST.title, WF.TRACK_REQUEST.hint)}
           <div style="height:16px;border-bottom:1px dashed var(--line);margin-bottom:16px"></div>
@@ -348,6 +354,20 @@ const Tasks = (() => {
           : `<p class="small muted">لا توجد مرفقات.</p>`}
         <button class="btn ghost sm" id="td-addfile" style="margin-top:9px">➕ إضافة مرفق</button>
         <input type="file" id="td-file-input" multiple hidden>
+
+        ${(() => {
+          const spans = WF.deptDurations(t, events).filter(x => x.days > 0);
+          if (spans.length < 2) return "";   // لم تمرّ على أكثر من إدارة
+          return `<h4 style="margin:20px 0 6px;color:var(--ink)">زمن كل إدارة</h4>
+            <div class="tbl-wrap"><table>
+              <thead><tr><th>الإدارة</th><th class="num">أيام العمل</th></tr></thead>
+              <tbody>${spans.map(x => `<tr>
+                <td>${esc(App.deptName(x.dept))}</td>
+                <td class="num">${AR(x.days)}</td></tr>`).join("")}</tbody>
+            </table></div>
+            <p class="small muted" style="margin-top:6px">
+              تُحتسب أيام كل إدارة منفصلة، فلا يُحمَّل تأخر إدارة على أخرى في التقارير.</p>`;
+        })()}
 
         <h4 style="margin:20px 0 6px;color:var(--ink)">سجل الإجراءات</h4>
         <ul class="timeline">${events.map(e => `
@@ -405,6 +425,17 @@ const Tasks = (() => {
       body: `
         ${action.hint ? `<div class="notice info">${esc(action.hint)}</div>` : ""}
 
+        ${needs.indexOf("dept") !== -1 ? `
+          <div class="field req"><label>الإدارة المُسنَد إليها المرحلة</label>
+            <select id="ac-dept">
+              <option value="">— اختر —</option>
+              ${App.state.departments.filter(d => d.id !== t.department_id).map(d =>
+                `<option value="${d.id}">${d.icon} ${esc(d.name)}</option>`).join("")}
+            </select>
+            <div class="help">تاريخ الاستحقاق <b>لا يتغيّر</b>: ${SLA.fmtDate(t.due_at)} —
+              وتُحتسب أيام كل إدارة منفصلة في تقرير الأداء.</div>
+          </div>` : ""}
+
         ${needs.indexOf("assignee") !== -1 ? `
           <div class="field req"><label>المنفّذ المكلَّف</label>
             <select id="ac-assignee">
@@ -446,10 +477,13 @@ const Tasks = (() => {
           const g = sel => { const n = UI.$(sel, ov); return n ? n.value.trim() : ""; };
           const extra = {
             assignee: g("#ac-assignee"),
+            dept: g("#ac-dept"),
             satisfaction: g("#ac-sat"),
             reason: g("#ac-reason"),
             note: g("#ac-note"),
           };
+          if (needs.indexOf("dept") !== -1 && !extra.dept)
+            return UI.err("اختر الإدارة المُسنَد إليها المرحلة.");
           if (needs.indexOf("reason") !== -1 && extra.reason.length < 5)
             return UI.err("اكتب السبب بوضوح (5 أحرف على الأقل).");
           if (needs.indexOf("note") !== -1 && extra.note.length < 5)

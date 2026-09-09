@@ -36,6 +36,10 @@ const DemoDB = (() => {
       id: s.id, department_id: d.id, name: s.name, sla_days: s.days,
       audience: s.audience.slice(), channel: s.channel,
       reqs: s.reqs.slice(), flow: s.flow.slice(), note: s.note || "", active: true,
+      is_public: !!s.public,                       // يظهر في بوابة المستفيدين
+      partner_dept: s.partner || null,             // إدارة شريكة في مرحلة
+      chain: s.chain ? s.chain.slice() : null,     // مسار إلزامي بين إدارات
+      options: s.options ? JSON.parse(JSON.stringify(s.options)) : null,
     })));
 
     const profiles = USERS_SEED.map((u, i) => ({
@@ -105,6 +109,7 @@ const DemoDB = (() => {
           created_at: iso(created),
           accepted_at: null, due_at: null, completed_at: null, closed_at: null,
           return_reason: null, satisfaction: null,
+          delegated_to: null, delegated_from: null, delegated_at: null,
         };
 
         /* مسار الطلب: نسبة صغيرة تُعاد أو تُرفض أو تُسحب */
@@ -223,6 +228,7 @@ const DemoDB = (() => {
           sla_days: svc.sla_days,
           created_at: iso(createdAt), accepted_at: iso(acceptedAt), due_at: iso(dueAt),
           completed_at: null, closed_at: null, return_reason: null, satisfaction: null,
+          delegated_to: null, delegated_from: null, delegated_at: null,
         };
         pushEvent(state, t, null, "submitted", requester.id, createdAt, "رفع الطلب");
         pushEvent(state, t, "submitted", "accepted", mgr ? mgr.id : requester.id, acceptedAt,
@@ -252,6 +258,8 @@ const DemoDB = (() => {
     state.events.push({
       id: uid("e"), task_id: t.id, actor_id: actor,
       from_status: from, to_status: to, note: note || "", created_at: iso(when),
+      /* يُحفظ مع الحدث ليُحتسب زمن كل إدارة على حدة لاحقاً */
+      delegated_to: t.delegated_to || null,
     });
   }
 
@@ -278,7 +286,9 @@ const DemoDB = (() => {
     if (!me) return false;
     if (me.role === "owner") return true;
     if (me.role === "manager") {
-      return t.department_id === me.department_id || t.requester_dept === me.department_id;
+      return t.department_id === me.department_id
+          || t.requester_dept === me.department_id
+          || t.delegated_to === me.department_id;   // مرحلة مُسندة لإدارته
     }
     return t.assignee_id === me.id || t.requester_id === me.id;
   }
@@ -382,6 +392,7 @@ const DemoDB = (() => {
         created_at: iso(now),
         accepted_at: null, due_at: null, completed_at: null, closed_at: null,
         return_reason: null, satisfaction: null,
+          delegated_to: null, delegated_from: null, delegated_at: null,
       };
       S.tasks.push(t);
       pushEvent(S, t, null, "submitted", session.id, now, payload.description || "رفع الطلب");
@@ -424,6 +435,28 @@ const DemoDB = (() => {
           if (!a) throw new Error("المنفّذ غير موجود.");
           t.assignee_id = a.id;
           note = "إسناد المهمة إلى " + a.full_name + (note ? " — " + note : "");
+          break;
+        }
+        case "delegate": {
+          if (!extra.dept) throw new Error("اختر الإدارة المُسنَد إليها.");
+          if (extra.dept === t.department_id) throw new Error("لا يمكن إسناد المرحلة لنفس الإدارة.");
+          const d = S.departments.filter(x => x.id === extra.dept)[0];
+          if (!d) throw new Error("الإدارة غير موجودة.");
+          t.delegated_to = d.id;
+          t.delegated_from = t.department_id;
+          t.delegated_at = iso(now);
+          /* تاريخ الاستحقاق لا يتغيّر — المدة الأصلية تستمر */
+          note = "إسناد المرحلة إلى " + d.name + (note ? " — " + note : "");
+          break;
+        }
+        case "return_delegation":
+        case "recall_delegation": {
+          const from = t.delegated_to ? (S.departments.filter(x => x.id === t.delegated_to)[0] || {}).name : "";
+          note = (actionId === "return_delegation"
+            ? "أنهت " + from + " مرحلتها وأعادت الطلب"
+            : "سحبُ الإسناد من " + from) + (note ? " — " + note : "");
+          t.delegated_to = null;
+          t.delegated_at = null;
           break;
         }
         case "approve":

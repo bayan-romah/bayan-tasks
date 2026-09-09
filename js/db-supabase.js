@@ -167,6 +167,7 @@ const SupaDB = (() => {
         p_reason: extra.reason || null,
         p_assignee: extra.assignee || null,
         p_satisfaction: extra.satisfaction ? Number(extra.satisfaction) : null,
+        p_dept: extra.dept || null,
       });
       if (error) fail(error);
       if (extra.files && extra.files.length) await api.addFiles(taskId, extra.files);

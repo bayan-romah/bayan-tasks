@@ -268,6 +268,8 @@ const Dashboard = (() => {
     const pending = inbound.filter(t => ["submitted", "returned"].indexOf(t.status) !== -1);
     const approve = inbound.filter(t => t.status === "pending_approval");
     const unassigned = inbound.filter(t => t.status === "accepted");
+    const delegated = App.delegatedToMe();          // مراحل أُسندت لإدارته
+    const sentOut = inbound.filter(t => t.status === "delegated");  // أسندها هو لغيره
 
     el.innerHTML = `
       <div class="page-head">
@@ -279,12 +281,15 @@ const Dashboard = (() => {
       </div>
       ${statRow(s)}
 
-      ${(pending.length || approve.length || unassigned.length) ? `
+      ${(pending.length || approve.length || unassigned.length || delegated.length) ? `
         <div class="notice warn" style="margin-top:14px">
           <b>يحتاج قرارك:</b>
-          ${pending.length ? `${AR(pending.length)} طلب بانتظار الفرز · ` : ""}
-          ${unassigned.length ? `${AR(unassigned.length)} مقبول بلا إسناد · ` : ""}
-          ${approve.length ? `${AR(approve.length)} بانتظار الاعتماد` : ""}
+          ${[
+            pending.length ? `${AR(pending.length)} بانتظار الفرز` : "",
+            unassigned.length ? `${AR(unassigned.length)} مقبول بلا إسناد` : "",
+            approve.length ? `${AR(approve.length)} بانتظار الاعتماد` : "",
+            delegated.length ? `<b>${AR(delegated.length)} مرحلة مُسندة لإدارتك من إدارة أخرى</b>` : "",
+          ].filter(Boolean).join(" · ")}
         </div>` : ""}
 
       <div class="grid-2" style="margin-top:16px">
@@ -292,9 +297,19 @@ const Dashboard = (() => {
         ${trend(inbound)}
       </div>
 
+      ${delegated.length ? `
+        <h3 class="section-title">مراحل مُسندة لإدارتك من إدارات أخرى</h3>
+        <div class="notice info">هذه طلبات تنفّذها إدارات أخرى، وأُسندت لإدارتك مرحلة فيها.
+          بعد إنهائها يرجع الطلب لإدارته الأصلية — و<b>تاريخ استحقاقه الأصلي لم يتغيّر</b>.</div>
+        ${taskCards(delegated, "")}` : ""}
+
       ${pending.length || unassigned.length || approve.length ? `
         <h3 class="section-title">صندوق القرارات</h3>
         ${taskCards(pending.concat(unassigned, approve), "لا توجد قرارات معلّقة.")}` : ""}
+
+      ${sentOut.length ? `
+        <h3 class="section-title">طلباتك المعلّقة لدى إدارات أخرى</h3>
+        ${taskCards(sentOut, "")}` : ""}
 
       <h3 class="section-title">أداء الموظفين</h3>
       ${staffTable(me.department_id)}

@@ -48,6 +48,10 @@ create table if not exists public.services (
   flow          text[] not null default '{}',
   note          text default '',
   active        boolean not null default true,
+  is_public     boolean not null default false,          -- يظهر في بوابة المستفيدين
+  partner_dept  text references public.departments(id),  -- إدارة شريكة في مرحلة
+  chain         text[],                                  -- مسار إلزامي بين إدارات
+  options       jsonb,                                   -- خيارات فرعية للطلب
   created_at    timestamptz not null default now()
 );
 
@@ -73,9 +77,14 @@ create table if not exists public.tasks (
 
   status         text not null default 'submitted' check (status in (
                    'submitted','screening','returned','accepted','assigned',
-                   'in_progress','pending_approval','completed','closed',
+                   'in_progress','delegated','pending_approval','completed','closed',
                    'rejected','cancelled')),
   sla_days       int not null default 5,
+
+  -- إسناد مرحلة لإدارة أخرى — المدة الأصلية تستمر ولا يتغيّر due_at
+  delegated_to   text references public.departments(id),
+  delegated_from text references public.departments(id),
+  delegated_at   timestamptz,
 
   created_at     timestamptz not null default now(),
   accepted_at    timestamptz,      -- لحظة بدء احتساب المدة
@@ -100,6 +109,8 @@ create table if not exists public.task_events (
   from_status text,
   to_status   text not null,
   note        text default '',
+  -- الإدارة المُسنَد إليها عند حدوث الإسناد، ليُحتسب زمن كل إدارة على حدة
+  delegated_to text references public.departments(id),
   created_at  timestamptz not null default now()
 );
 create index if not exists events_task_idx on public.task_events(task_id, created_at);
@@ -249,7 +260,8 @@ create or replace function public.task_action(
   p_note         text default null,
   p_reason       text default null,
   p_assignee     uuid default null,
-  p_satisfaction int  default null
+  p_satisfaction int  default null,
+  p_dept         text default null
 ) returns public.tasks
 language plpgsql security definer set search_path = public as $$
 declare
@@ -259,6 +271,7 @@ declare
   ok       boolean := false;
   note     text;
   a_name   text;
+  d_name   text;
 begin
   select * into me from public.profiles where id = auth.uid() and active;
   if me is null then raise exception 'الحساب غير مفعَّل أو غير مسجَّل الدخول.'; end if;
@@ -275,6 +288,9 @@ begin
     when 'reject'      then 'rejected'
     when 'assign'      then 'assigned'
     when 'start'       then 'in_progress'
+    when 'delegate'          then 'delegated'
+    when 'return_delegation' then 'in_progress'
+    when 'recall_delegation' then 'in_progress'
     when 'submit_work' then 'pending_approval'
     when 'changes'     then 'in_progress'
     when 'approve'     then 'completed'
@@ -291,6 +307,9 @@ begin
     (p_action = 'accept'      and t.status in ('submitted','screening')) or
     (p_action = 'reject'      and t.status in ('submitted','screening')) or
     (p_action = 'assign'      and t.status in ('accepted','assigned','in_progress')) or
+    (p_action = 'delegate'          and t.status in ('accepted','assigned','in_progress')) or
+    (p_action = 'return_delegation' and t.status = 'delegated') or
+    (p_action = 'recall_delegation' and t.status = 'delegated') or
     (p_action = 'start'       and t.status = 'assigned') or
     (p_action = 'submit_work' and t.status = 'in_progress') or
     (p_action = 'changes'     and t.status = 'pending_approval') or
@@ -304,8 +323,12 @@ begin
   -- ---- من يملك الإجراء ----
   if me.role = 'owner' then
     ok := true;
-  elsif p_action in ('screen','return','accept','reject','assign','changes','approve') then
+  elsif p_action in ('screen','return','accept','reject','assign','changes','approve',
+                     'delegate','recall_delegation') then
     ok := (me.role = 'manager' and me.department_id = t.department_id);
+  elsif p_action = 'return_delegation' then
+    -- مدير الإدارة المُسنَد إليها المرحلة وحده من يُنهيها
+    ok := (me.role = 'manager' and me.department_id = t.delegated_to);
   elsif p_action in ('start','submit_work') then
     ok := (t.assignee_id = me.id)
        or (me.role = 'manager' and me.department_id = t.department_id);
@@ -350,6 +373,28 @@ begin
     t.assignee_id := p_assignee;
     note := 'إسناد المهمة إلى ' || a_name || case when note <> '' then ' — ' || note else '' end;
 
+  elsif p_action = 'delegate' then
+    if p_dept is null then raise exception 'اختر الإدارة المُسنَد إليها.'; end if;
+    if p_dept = t.department_id then
+      raise exception 'لا يمكن إسناد المرحلة لنفس الإدارة.';
+    end if;
+    select name into d_name from public.departments where id = p_dept;
+    if d_name is null then raise exception 'الإدارة غير موجودة.'; end if;
+    -- ⚠️ due_at لا يُمسّ: المدة الأصلية تستمر أثناء الإسناد
+    t.delegated_to := p_dept;
+    t.delegated_from := t.department_id;
+    t.delegated_at := now();
+    note := 'إسناد المرحلة إلى ' || d_name || case when note <> '' then ' — ' || note else '' end;
+
+  elsif p_action in ('return_delegation','recall_delegation') then
+    select name into d_name from public.departments where id = t.delegated_to;
+    note := (case when p_action = 'return_delegation'
+                  then 'أنهت ' || coalesce(d_name,'الإدارة') || ' مرحلتها وأعادت الطلب'
+                  else 'سحبُ الإسناد من ' || coalesce(d_name,'الإدارة') end)
+            || case when note <> '' then ' — ' || note else '' end;
+    t.delegated_to := null;
+    t.delegated_at := null;
+
   elsif p_action = 'approve' then
     t.completed_at := now();
     note := coalesce(nullif(note,''), 'اعتماد الإنجاز.');
@@ -364,14 +409,17 @@ begin
     note := p_reason;
   end if;
 
-  insert into public.task_events(task_id, actor_id, from_status, to_status, note)
-  values (t.id, me.id, t.status, new_st, note);
+  insert into public.task_events(task_id, actor_id, from_status, to_status, note, delegated_to)
+  values (t.id, me.id, t.status, new_st, note,
+          case when p_action = 'delegate' then t.delegated_to else null end);
 
   update public.tasks set
     status = new_st, accepted_at = t.accepted_at, due_at = t.due_at,
     completed_at = t.completed_at, closed_at = t.closed_at,
     assignee_id = t.assignee_id, return_reason = t.return_reason,
-    satisfaction = t.satisfaction
+    satisfaction = t.satisfaction,
+    delegated_to = t.delegated_to, delegated_from = t.delegated_from,
+    delegated_at = t.delegated_at
   where id = t.id
   returning * into t;
 
@@ -465,7 +513,9 @@ drop policy if exists task_read on public.tasks;
 create policy task_read on public.tasks for select to authenticated using (
   public.my_role() = 'owner'
   or (public.my_role() = 'manager'
-      and (department_id = public.my_dept() or requester_dept = public.my_dept()))
+      and (department_id = public.my_dept()
+        or requester_dept = public.my_dept()
+        or delegated_to  = public.my_dept()))   -- مرحلة مُسندة لإدارته
   or requester_id = auth.uid()
   or assignee_id  = auth.uid()
 );
