@@ -52,7 +52,9 @@ create table if not exists public.services (
   partner_dept  text references public.departments(id),  -- إدارة شريكة في مرحلة
   chain         text[],                                  -- مسار إلزامي بين إدارات
   options       jsonb,                                   -- خيارات فرعية للطلب
-  created_at    timestamptz not null default now()
+  created_at    timestamptz not null default now(),
+  -- يجعل إعادة تشغيل seed.sql تحديثاً لا تكراراً ولا حذفاً
+  unique (department_id, name)
 );
 
 create table if not exists public.holidays (

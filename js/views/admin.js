@@ -284,6 +284,13 @@ const Admin = (() => {
             <button class="btn" id="b-export">تصدير نسخة JSON</button>
             <button class="btn ghost" id="b-csv">تصدير كل المهام CSV</button>
           </div>
+          <p class="small muted" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+            <b style="color:var(--ink)">توليد ملف بذور قاعدة البيانات:</b>
+            يُنتج <code>seed.sql</code> من الأقسام والخدمات الحالية — شغّله في
+            Supabase عند أول تهيئة، أو بعد أي تعديل على الكتالوج من هذه اللوحة.</p>
+          <div class="actions" style="margin-top:8px">
+            <button class="btn ghost" id="b-sql">⬇️ توليد seed.sql</button>
+          </div>
         </div>
 
         <div class="panel">
@@ -309,6 +316,10 @@ const Admin = (() => {
       UI.ok("تم تصدير النسخة.");
     };
     UI.$("#b-csv", el).onclick = () => Tasks.exportCSV(App.state.tasks);
+    UI.$("#b-sql", el).onclick = () => {
+      UI.download(buildSeedSQL(), "seed.sql", "text/plain");
+      UI.ok("تم توليد seed.sql من الكتالوج الحالي.");
+    };
 
     const imp = UI.$("#b-import", el);
     if (imp) imp.onclick = () => {
@@ -331,5 +342,69 @@ const Admin = (() => {
       async () => { await DB.resetDemo(); location.reload(); }, "إعادة الضبط", true);
   }
 
-  return { render };
+  /* ---------- توليد ملف بذور قاعدة البيانات ----------
+     يُبنى من الأقسام والخدمات والعطل الحالية، فيبقى متطابقاً مع
+     الكتالوج مهما عُدِّل من هذه اللوحة. */
+  function buildSeedSQL() {
+    const q = s => "'" + String(s == null ? "" : s).replace(/'/g, "''") + "'";
+    const arr = a => "array[" + (a || []).map(q).join(",") + "]::text[]";
+    const arrOrNull = a => (a && a.length) ? arr(a) : "null";
+    const jsonOrNull = o => o ? q(JSON.stringify(o)) + "::jsonb" : "null";
+    const bool = v => v ? "true" : "false";
+    const D = App.state.departments, S = App.state.services, H = App.state.holidays;
+
+    const L = [];
+    L.push("-- =============================================================");
+    L.push("--  نظام بيان لإدارة المهام — بيانات البذور");
+    L.push("--  مولَّد آلياً من النظام بتاريخ " + SLA.fmtShort(new Date()));
+    L.push("--  شغّله بعد schema.sql في: Supabase ← SQL Editor");
+    L.push("--  لا يُعدَّل يدوياً — أعِد توليده من: الإعدادات ← النسخ الاحتياطي");
+    L.push("-- =============================================================");
+    L.push("");
+    L.push("-- ---------- الأقسام (" + D.length + ") ----------");
+    L.push("insert into public.departments (id,name,icon,descr,sort_order) values");
+    L.push(D.map(d => "  (" + [q(d.id), q(d.name), q(d.icon), q(d.desc || d.descr || ""), d.sort_order].join(",") + ")").join(",\n"));
+    L.push("on conflict (id) do update set name=excluded.name, icon=excluded.icon,");
+    L.push("  descr=excluded.descr, sort_order=excluded.sort_order;");
+    L.push("");
+    L.push("-- ---------- الخدمات (" + S.length + ") ----------");
+    L.push("-- آمن لإعادة التشغيل: يُحدِّث الموجود ولا يكرّره ولا يحذف مهاماً مرتبطة.");
+    L.push("-- الخدمات التي أضفتها من لوحة المالك ولا توجد هنا تبقى كما هي.");
+    L.push("insert into public.services");
+    L.push("  (department_id,name,sla_days,audience,channel,reqs,flow,note,");
+    L.push("   is_public,partner_dept,chain,options) values");
+    L.push(D.map(d => {
+      const rows = S.filter(s => s.department_id === d.id).map(s =>
+        "  (" + [q(s.department_id), q(s.name), s.sla_days, arr(s.audience), q(s.channel),
+          arr(s.reqs), arr(s.flow), q(s.note || ""), bool(s.is_public),
+          s.partner_dept ? q(s.partner_dept) : "null", arrOrNull(s.chain),
+          jsonOrNull(s.options)].join(",") + ")");
+      return "  -- " + d.name + "\n" + rows.join(",\n");
+    }).join(",\n\n"));
+    L.push("on conflict (department_id, name) do update set");
+    L.push("  sla_days=excluded.sla_days, audience=excluded.audience,");
+    L.push("  channel=excluded.channel, reqs=excluded.reqs, flow=excluded.flow,");
+    L.push("  note=excluded.note, is_public=excluded.is_public,");
+    L.push("  partner_dept=excluded.partner_dept, chain=excluded.chain,");
+    L.push("  options=excluded.options, active=true;");
+    L.push("");
+    L.push("-- ---------- العطل الرسمية (" + H.length + ") ----------");
+    if (H.length) {
+      L.push("insert into public.holidays (date,name) values");
+      L.push(H.map(h => "  (" + q(h.date) + "," + q(h.name) + ")").join(",\n"));
+      L.push("on conflict (date) do nothing;");
+    } else {
+      L.push("-- لا توجد عطل مسجّلة");
+    }
+    L.push("");
+    L.push("-- ---------- التحقق بعد التشغيل ----------");
+    L.push("--   select count(*) from public.departments;  -- المتوقع: " + D.length);
+    L.push("--   select count(*) from public.services;     -- المتوقع: " + S.length);
+    L.push("--   select count(*) from public.holidays;     -- المتوقع: " + H.length);
+    L.push("--   select public.add_working_days('2026-09-06 09:00+03', 5);");
+    L.push("--   -- المتوقع: 2026-09-10 16:00 بتوقيت الرياض (الخميس)");
+    return L.join("\n");
+  }
+
+  return { render, buildSeedSQL };
 })();
